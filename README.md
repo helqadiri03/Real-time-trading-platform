@@ -14,6 +14,33 @@ This completely containerized solution orchestrates the following components:
     - **Volume Histograms** (Volumen de transacciones por minuto)
     - **Asset current price and native Grafana alerts** (Alerts for BTCUSDT exceeding price limits).
 
+## 1.1 Technology & Flow Schema
+This project follows a real-time streaming flow with these main technology layers:
+
+1. **Data Ingestion**
+   - `producer/producer.py`
+   - Python connects to Finnhub WebSocket and writes trade events to Kafka.
+
+2. **Event Streaming**
+   - Kafka + Zookeeper
+   - Trades are published to the `trades` topic for durable, ordered processing.
+
+3. **Stream Processing**
+   - `streaming/flink_job.py`
+   - PyFlink consumes `trades`, performs 1-minute tumbling-window aggregation, computes OHLC + volume, and writes results to TimescaleDB.
+
+4. **Time-Series Storage**
+   - TimescaleDB / PostgreSQL
+   - Stores aggregated candlestick rows with `time`, `symbol`, `open`, `high`, `low`, `close`, and `volume`.
+
+5. **Visualization & Alerting**
+   - Grafana reads from TimescaleDB
+   - Provides live dashboards, charts, and alert rules for price limit breaches.
+
+The complete flow is:
+
+`Finnhub WebSocket -> Python Producer -> Kafka trades topic -> Flink aggregation -> TimescaleDB -> Grafana dashboard`
+
 ## 2. How to Run (Entorno Local)
 
 You do not need to install local environments. Everything is dockerized.
